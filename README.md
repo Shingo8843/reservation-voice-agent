@@ -1,48 +1,94 @@
-# 💇‍♀️ Voice-Enabled Salon Reservation System
+# 💇‍♀️ Voice-Enabled Salon Reservation System — Full Scope
+🎥 **Demo Video**  
+🎬 [Watch the Demo on YouTube]()
 
-**Backend:** FastAPI + Supabase (PostgreSQL)
+## 1. Overview
 
-A REST API for voice-based salon booking, supporting reservation creation, lookup, modification, cancellation, and availability checking.
+This project delivers a **voice AI-powered salon reservation system** for **ABC Salon**, transforming traditional phone-based scheduling into an intelligent, automated experience. The system captures booking details, validates availability through a FastAPI backend, and records confirmed reservations in Supabase.
 
-## 🚀 Quick Start
+Developed as part of a proof-of-concept by a **Forward Deployed Engineer**, this solution integrates conversational AI with a structured scheduling API, supporting both English and Japanese clients.
 
-### 1. Install Dependencies
+---
 
-```bash
-pip install -r requirements.txt
+## 2. Project Context
+
+### 2.1 Background
+
+From the discovery sessions, ABC Salon faces missed bookings because calls often arrive during active services. The clientele consists mostly of senior regulars who prefer simplicity and clarity.
+
+### 2.2 Objectives
+
+Based on the Scope of Work:
+
+* Automate inbound booking, modification, confirmation, and cancellation calls.
+* Maintain natural and polite tone across voice interactions.
+* Ensure booking accuracy and structured API integration.
+
+### 2.3 Target Outcomes
+
+* Reduce missed bookings by at least 80%.
+* Achieve ≥90% accuracy for date, time, and service capture.
+* Reach ≥90% completion rate for inbound calls routed to the assistant.
+
+---
+
+## 3. System Architecture
+
+### 3.1 Components
+
+| Layer                     | Description                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Voice Assistant**       | Handles natural-language interaction and intent detection (book, modify, confirm, cancel).       |
+| **FastAPI Backend**       | REST API that manages reservation data, ensures availability, and handles Supabase transactions. |
+| **Supabase (PostgreSQL)** | Persistent storage for customer reservations with built-in validation and timestamps.            |
+
+### 3.2 Interaction Flow
+
+1. **Inbound Call Trigger** → Voice agent identifies intent (book, modify, confirm, cancel).
+2. **Field Capture** → Customer provides name, phone, date, time, stylist, and service.
+3. **API Transaction** → FastAPI endpoint processes request and validates availability.
+4. **Confirmation** → Assistant reads back booking details and confirms before committing.
+5. **Database Write** → Data persisted to Supabase via `add_reservation`.
+6. **Response Output** → Assistant ends with confirmation message.
+
+---
+
+## 4. FastAPI Backend
+
+### 4.1 Key Features
+
+* **Endpoints**:
+
+  * `POST /add` — create reservation
+  * `GET /lookup/{phone_number}` — list bookings for customer
+  * `PUT /modify/{reservation_id}` — update booking details
+  * `DELETE /cancel/{reservation_id}` — cancel a reservation
+  * `GET /availability` — check available time slots
+
+* **Conflict Prevention**: Prevents double booking for the same stylist and time.
+
+* **Validation**: Ensures duration > 0 and normalizes time input.
+
+* **Header-based Input**: Designed for voice agent API calls with prefixed headers like `X-Customer-Name` and `X-Reservation-Time`.
+
+### 4.2 Data Models
+
+Defined in `models.py`:
+
+```python
+class Reservation(BaseModel):
+    customer_name: str
+    phone_number: str
+    reservation_date: date
+    reservation_time: time
+    stylist_name: str
+    service_menu: str
+    duration_minutes: Optional[int] = 60
+    status: Optional[str] = "scheduled"
 ```
 
-### 2. Set Up Environment Variables
+### 4.3 Example Payload
 
-Create a `.env` file in the root directory:
-
-```env
-SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-SUPABASE_KEY=YOUR_SERVICE_ROLE_KEY
-```
-
-Get these values from your Supabase project settings (Project Settings → API).
-
-### 3. Set Up Database
-
-Run the SQL schema in `schema.sql` in your Supabase SQL Editor to create the necessary tables and indexes.
-
-### 4. Run the Server
-
-```bash
-uvicorn main:app --reload
-```
-
-The API will be available at `http://127.0.0.1:8000`
-
-Interactive API documentation: `http://127.0.0.1:8000/docs`
-
-## 📚 API Endpoints
-
-### POST `/add`
-Create a new reservation.
-
-**Request Body:**
 ```json
 {
   "customer_name": "Haruka Tanaka",
@@ -55,106 +101,110 @@ Create a new reservation.
 }
 ```
 
-### GET `/lookup/{phone_number}`
-Get all reservations for a phone number.
+---
 
-**Example:** `GET /lookup/080-1234-5678`
+## 5. Voice Agent Logic
 
-### PATCH `/modify/{reservation_id}`
-Update an existing reservation.
+### 5.1 Intents
 
-**Request Body:**
-```json
-{
-  "reservation_time": "16:00:00",
-  "stylist_name": "Sato"
-}
-```
+The agent supports four primary intents:
 
-### PATCH `/cancel/{reservation_id}`
-Cancel a reservation.
+1. **New Reservation**
+2. **Modify Reservation**
+3. **Confirm Reservation**
+4. **Cancel Reservation**
 
-### GET `/availability`
-Check availability for a stylist on a specific date.
+### 5.2 Call Handling Rules
 
-**Query Parameters:**
-- `reservation_date`: Date in YYYY-MM-DD format
-- `stylist`: Stylist name
+* Speak warmly and clearly using short, natural phrases.
+* Always repeat and confirm all reservation details.
+* Transfer to human representative for out-of-scope requests (e.g., kimono dressing, special photo bookings).
+* If system error occurs, politely ask caller to retry later.
 
-**Example:** `GET /availability?reservation_date=2025-11-06&stylist=Sato`
+### 5.3 Example Dialogue (New Booking)
 
-## 🔒 Database Constraints
+> **Agent:** “Thank you for calling ABC Salon, how can I assist you?”
+> **Caller:** “I want to book a haircut tomorrow afternoon.”
+> **Agent:** “Sure, may I have your name and phone number please?”
+> **Caller:** “It is Haruka Tanaka, 080-1234-5678.”
+> **Agent:** “We have 1 p.m. and 3 p.m. available with Sato, which works for you?”
+> **Caller:** “3 p.m. please.”
+> **Agent:** “Got it. Haircut for Haruka Tanaka on November 6 at 3 p.m. with Sato, correct?”
+> **Caller:** “Yes.”
+> **Agent:** “Perfect, you are all set. See you then.”
 
-- **No Double Booking:** A unique index prevents overlapping bookings for the same stylist at the same time (only for `status = 'scheduled'`)
-- **Automatic Timestamps:** `updated_at` is automatically updated on record modification
-- **Default Duration:** All reservations default to 60 minutes
+---
 
-## 📞 Voice AI Integration
+## 6. Success Metrics
 
-The API is designed to work with voice AI assistants:
+| Metric                  | Definition                                | Target             |
+| ----------------------- | ----------------------------------------- | ------------------ |
+| **Connection Rate**     | % of calls reaching the assistant         | ≥95%               |
+| **Completion Rate**     | % of calls completing required fields     | ≥90%               |
+| **Data Accuracy**       | % of correctly parsed reservation details | ≥90%               |
+| **Average Handle Time** | Duration per completed call               | Track and optimize |
+| **Human Transfer Rate** | % of calls escalated to staff             | ≤15%               |
 
-1. **Booking:** Call `/add` endpoint when customer wants to book
-2. **Rescheduling:** Use `/modify/{id}` to change reservation details
-3. **Cancellation:** Use `/cancel/{id}` to cancel appointments
-4. **Availability Check:** Use `/availability` to check if a time slot is free
-5. **Confirmation:** Use `/lookup/{phone_number}` to retrieve customer appointments
+---
 
-## 🚨 Error Handling
+## 7. Risks and Mitigation
 
-- `409 Conflict`: Time slot already booked
-- `404 Not Found`: Reservation not found
-- `400 Bad Request`: Invalid input data
-- `500 Internal Server Error`: Server/database error
+| Risk                                   | Mitigation                                          |
+| -------------------------------------- | --------------------------------------------------- |
+| Older callers struggle with automation | Use natural phrasing and minimal options.           |
+| Ambiguous time phrases (“around noon”) | Agent repeats back explicit times for confirmation. |
+| API latency delays                     | Cache short-term availability results.              |
+| Schedule change variability            | Allow dynamic calendar updates in Supabase.         |
 
-## 🚀 Deploy to Render
+---
 
-### Option 1: Using render.yaml (Recommended)
+## 8. Deployment
 
-1. **Push your code to GitHub**
+### Render Deployment Workflow
+
+1. **Push to GitHub**
+
    ```bash
    git add .
-   git commit -m "Ready for deployment"
+   git commit -m "Voice API ready"
    git push origin main
    ```
+2. **Create Render Web Service**
 
-2. **Create a new Web Service on Render**
-   - Go to [Render Dashboard](https://dashboard.render.com)
-   - Click "New +" → "Web Service"
-   - Connect your GitHub repository
-   - Render will automatically detect the `render.yaml` file
+   * Link GitHub repository.
+   * Set environment variables:
 
-3. **Set Environment Variables**
-   - In your Render service settings, add these environment variables:
-     - `SUPABASE_URL`: Your Supabase project URL
-     - `SUPABASE_KEY`: Your Supabase service role key
-   - Or mark them as "Sync" in the render.yaml to configure in the dashboard
+     * `SUPABASE_URL`
+     * `SUPABASE_KEY`
+3. **Start Command**
 
-4. **Deploy**
-   - Render will automatically build and deploy your service
-   - Your API will be available at `https://your-service.onrender.com`
+   ```bash
+   uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4
+   ```
+4. **Access**
 
-### Option 2: Manual Configuration
+   * `https://your-service.onrender.com/docs`
 
-1. **Create a new Web Service on Render**
-   - Go to [Render Dashboard](https://dashboard.render.com)
-   - Click "New +" → "Web Service"
-   - Connect your GitHub repository
+---
 
-2. **Configure Build Settings**
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4`
+## 9. Future Enhancements
 
-3. **Set Environment Variables**
-   - Add `SUPABASE_URL` and `SUPABASE_KEY` in the Environment section
+* Add LINE chat integration for text-based booking.
+* Sync directly with Google Calendar or salon management software.
+* Add notification support via SMS or LINE Messaging API.
+* Introduce multilingual support (Japanese and English).
+* Integrate voice analytics to optimize tone and response flow.
 
-4. **Deploy**
-   - Click "Create Web Service"
-   - Render will build and deploy your application
+---
 
-### Notes
+## 10. References
 
-- Render automatically assigns a `$PORT` environment variable
-- The service will sleep after 15 minutes of inactivity (on free tier)
-- First request after sleep may take 30-60 seconds to wake up
-- Consider upgrading to a paid plan for always-on service
+* Discovery: **ABC Salon Voice Booking Insights** [Discovery Document](./docs/Discovery.pdf)
+* Scope of Work: **Voice Assistant Functional Requirements** [Scope of Work](./docs/Scope_of_Work.pdf)
+* Specification: **Conversation and API Prompts** [Project Specification](./docs/Project_Specification.pdf)
+* Backend Implementation: **FastAPI Reservation API** [Backend Code (main.py)](./main.py), [Data Models (models.py)](./models.py)
+
+---
+
+
 
