@@ -1,6 +1,6 @@
 # 💇‍♀️ Voice-Enabled Salon Reservation System — Full Scope
 🎥 **Demo Video**  
-🎬 [Watch the Demo on YouTube]() To Be added
+🎬 [Watch the Demo on YouTube](https://youtu.be/vbU8FWOfAuo)
 
 ## 1. Overview
 
