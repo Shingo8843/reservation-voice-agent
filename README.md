@@ -4,9 +4,13 @@
 
 ## 1. Overview
 
-This project delivers a **voice AI-powered salon reservation system** for **ABC Salon**, transforming traditional phone-based scheduling into an intelligent, automated experience. The system captures booking details, validates availability through a FastAPI backend, and records confirmed reservations in Supabase.
+This project delivers a voice AI-powered salon reservation system for ABC Salon, transforming traditional phone-based scheduling into an intelligent, automated experience. The system captures booking details, validates availability through a FastAPI backend, and records confirmed reservations in Supabase.
 
-Developed as part of a proof-of-concept by a **Forward Deployed Engineer**, this solution integrates conversational AI with a structured scheduling API, supporting both English and Japanese clients.
+The salon setting was intentionally chosen because it represents a business model everyone intuitively understands. Scheduling, cancellations, and confirmations are familiar processes, making it an ideal context to demonstrate the practicality of voice AI in a real-world, service-oriented environment.
+
+The entire system — including the backend, Supabase integration, and Render deployment — was completed within a single day, emphasizing both the efficiency of the stack and the readiness of the solution for rapid proof-of-concept rollout.
+
+Developed as part of a proof-of-concept by a Forward Deployed Engineer, this solution integrates conversational AI with a structured scheduling API. 
 
 ---
 
